@@ -82,3 +82,34 @@ pip install
 >- 若不想看到debug資訊可以將verbose設為False
 - 若想讓機器人能記錄上下文，只須於prompt內加入MessagePlaceholder並於agent內帶入chat_history變數以及將chat_history的list append對話紀錄
 - 使用prompt = hub.pull('hwchase17/openai-functions-agent')抓取LangChain Hub上的prompt
+
+05 動態變更chain的參數設定
+===
+安裝套件
+---
+pip install 
+---
+- langchain 
+
+額外安裝
+---
+- Ollama (cmd:ollama pull codellama)
+
+重點
+---
+- 為了動態變更llm的temperature參數，在Ollama(model='llama2', temperature=0)後呼叫configurable_fields，將 temperature參數設定為ConfigurableField，將其命名為llm_temperature
+- 使用chain時，額外呼叫with_config()方法並進行llm_temperature設定
+- 若想要更換Ollma以外的語言模型時，需使用configurable_alternatives()
+>- ex:llm = Ollama(model='llama2').configurable_alternatives(
+    ConfigurableField(id="llm"),
+    default_key='llama2',
+    gpt35=ChatOpenAI(model="gpt-3.5-turbo", temperature=0),
+)
+- 變更prompt
+>- prompt = PromptTemplate.from_template(
+    "Tell me a joke about {topic}"
+).configurable_alternatives(
+    ConfigurableField(id="prompt"),
+    default_key="joke",
+    poem=PromptTemplate.from_template("Write a short poem about {topic}"),
+)
