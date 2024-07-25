@@ -128,3 +128,100 @@ pip install
         'conversation_id': conversation_id
     }
 ).invoke({'input': input_text})
+
+06 LangServe API 伺服器
+===
+安裝套件
+---
+pip install 
+---
+- langchain 
+- faiss-cpu 
+- "langserve[all]" 
+- pydantic==1.10.13
+
+額外安裝
+---
+- Ollama (cmd:ollama run llama2)
+
+重點
+---
+- 使用add_routes()將FastAPI的instance與chain進行綁定
+- 存取API說明文件 http://localhost:9000/doc
+- configurable參數一樣可以顯示在Playground上
+- 可以透過llama2 = RemoteRunnable("http://localhost:9000/llama2/")方式將REST API server轉成Runnable於本地端使用
+
+
+07 prompt長度控制
+===
+安裝套件
+---
+pip install 
+---
+- langchain 
+- transformers
+
+額外安裝
+---
+- Ollama (cmd:ollama run llama2)
+
+重點
+---
+- condense_prompt()函式對傳進來的ChatPromptValue進行長度檢查若超過500就只保留前2個messages，然後從剩下的messages再扣掉前2個，然後和一開始保留的2個messages加總，檢查是否長度大於500，若小於500則將合成結果輸出，若大於500則繼續扣除2個messages
+- 為何都是以2為單位扣除messages，因為一次可以扣掉1個HumanMessage和1個AIMessage
+- chat_history必須在condense_prompt()內進行更新，避免丟掉的對話紀錄重新回到prompt中
+
+08 文件下載器及分割器
+===
+安裝套件
+---
+pip install 
+---
+- langchain 
+- beautifulsoup4
+
+額外安裝
+---
+- Ollama (cmd:ollama run llama2)
+
+重點
+---
+- 透過WebBaseLoader下載新聞內容並轉換為document
+>- loader = WebBaseLoader("https://edition.cnn.com/2024/03/06/tech/openai-elon-musk-emails/index.html")
+documents = loader.load()
+- 實例RecursiveCharacterTextSplitter用於文本分割
+>- 常用參數
+>>- chunk_size
+>>- chunk_overlap
+- 將文本分割的好處:
+>- 可以克服 Tokens 數量上限的問題
+>- 讓語言模型可以專注在夠小的 chunks 上，而且在 Retrieval 階段，不相干/不相似的 chunks 的更容易被排除在外，進而提升語言模型的回答準確度/品質
+
+09 LangChain做SQL搜尋機器人
+===
+安裝套件
+---
+pip install 
+---
+- langchain 
+- SQLAlchemy
+
+額外安裝
+---
+- Ollama (cmd:ollama run llama2)
+- 隨意.db檔
+
+重點
+---
+- 使用2次prompt
+>- 第一次prompt藉由輸入問題及DB的schema使模型生成SQL語法指令
+>- 第二次prompt以使用者問題、經由第一次prompt得到的SQL語法、使用SQL語法進行資料庫查找的結果作為參數，使模型生成答案
+- 重點程式:
+>- chain = (
+    RunnablePassthrough.assign(query=gen_query_chain).assign(
+        result=lambda x: run_query(x["query"]),
+    )
+    | gen_answer_prompt
+    | llm
+)
+>- 首先將使用者input透過RunnablePassthrough.assign(query=gen_query_chain)產生prompt內的query變數，再將query變數送到assign( result=lambda x: run_query(x["query"]), )產生SQL搜尋結果result變數，最後將input、query、result輸入語言模型生成最後答案
