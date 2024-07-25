@@ -113,3 +113,18 @@ pip install
     default_key="joke",
     poem=PromptTemplate.from_template("Write a short poem about {topic}"),
 )
+
+05_2 動態變更不同使用者的id及對話紀錄
+===
+
+重點
+---
+- 於RunnableWithMessageHistory()內增加history_factory_config()參數，並將user_id、conversation_id以ConfigurableFieldSpec()進行設定
+- get_chat_history須作相對修改
+- 最後在chain呼叫的時候將參數帶入
+>- with_message_history.with_config(
+    configurable={
+        'user_id': user_id,
+        'conversation_id': conversation_id
+    }
+).invoke({'input': input_text})
