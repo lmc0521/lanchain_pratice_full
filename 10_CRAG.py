@@ -6,7 +6,7 @@ from langchain_community.chat_models import ChatOllama
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.embeddings import GPT4AllEmbeddings, OllamaEmbeddings
 from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain_community.vectorstores import Chroma, FAISS
+from langchain_community.vectorstores import Chroma, FAISS, SKLearnVectorStore
 from langchain.schema import Document
 from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -16,51 +16,65 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from typing_extensions import TypedDict
 from IPython.display import Image, display
 from langgraph.graph import START, END, StateGraph
-local_llm="llama2"
+local_llm="llama3"
 
 #Load
 url="https://lilianweng.github.io/posts/2023-06-23-agent/"
 loader=WebBaseLoader(url)
 docs=loader.load()
 
-text_splitter = RecursiveCharacterTextSplitter()
-docs = text_splitter.split_documents(docs)
+# text_splitter = RecursiveCharacterTextSplitter()
+text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+    chunk_size=250, chunk_overlap=0
+)
+doc_splits = text_splitter.split_documents(docs)
 
-embedding = OllamaEmbeddings()
 
-vectordb=FAISS.from_documents(docs,embedding)
+embedding = OpenAIEmbeddings()
 
-retriever=vectordb.as_retriever()
+# vectordb=FAISS.from_documents(docs,embedding)
+vectorstore = SKLearnVectorStore.from_documents(
+    documents=doc_splits,
+    embedding=embedding,
+)
+
+retriever=vectorstore.as_retriever()
 
 # LLM
 llm = ChatOllama(model=local_llm, format="json", temperature=0)
 
 # Prompt
+
 prompt = PromptTemplate(
-    template="""You are a teacher grading a quiz. You will be given: 
-    1/ a QUESTION
-    2/ A FACT provided by the student
+    template="""You are a grader assessing relevance of a retrieved document to a user question. \n
+    You will be given: \n
+    1/ a question
+    2/ a retrieved document    
 
-    You are grading RELEVANCE RECALL:
-    A score of 1 means that ANY of the statements in the FACT are relevant to the QUESTION. 
-    A score of 0 means that NONE of the statements in the FACT are relevant to the QUESTION. 
-    1 is the highest (best) score. 0 is the lowest score you can give. 
-
-    Explain your reasoning in a step-by-step manner. Ensure your reasoning and conclusion are correct. 
-
-    Avoid simply stating the correct answer at the outset.
-
-    Question: {question} \n
-    Fact: \n\n {documents} \n\n
-
+    question: {question} \n
+    retrieved document: \n\n {documents} \n\n
+    
+    If the document contains keywords related to the user question, grade it as relevant. \n
     Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question. \n
     Provide the binary score as a JSON with a single key 'score' and no premable or explanation.
     """,
     input_variables=["question", "documents"],
 )
-
+'''
+prompt= PromptTemplate(
+    templete="""You are a grader assessing relevance of a retrieved document to a user question. \n
+    Here is the retrieved document: \n\n {documents} \n\n
+    Here is the user question: {question} \n
+    If the document contains keywords related to the user question, grade it as relevant. \n
+    Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question. \n
+    Provide the binary score as a JSON with a single key 'score' and no premable or explanation.
+    """,
+    input_variables=["question", "documents"],
+)
+'''
 retrieval_grader = prompt | llm | JsonOutputParser()
-# question = "agent memory"
+# question = "Explan how the different type of agent memory work?"
+# question="Explain how AlphaCodium works?"
 # docs = retriever.invoke(question)
 # doc_txt = docs[0].page_content
 # print(retrieval_grader.invoke({"question": question, "documents": doc_txt}))
@@ -172,18 +186,27 @@ def grade_documents(state):
     steps.append("grade_document_retrieval")
     filtered_docs = []
     search = "No"
+    points = 0
     for d in documents:
         score = retrieval_grader.invoke(
             {"question": question, "documents": d.page_content}
         )
         grade = score["score"]
+        print(grade)
+
         if grade == "yes":
             print('---GRADDE: DOCUMENT RELEVANT---')
             filtered_docs.append(d)
+            points+=1
         else:
             print('---GRADDE: DOCUMENT NOT RELEVANT---')
-            search = "Yes"
-            continue
+            # search = "Yes"
+            # continue
+            points-=1
+    print(points)
+    if points<0:
+        search="Yes"
+
     return {
         "documents": filtered_docs,
         "question": question,
@@ -266,16 +289,27 @@ custom_graph = workflow.compile()
 display(Image(custom_graph.get_graph(xray=True).draw_mermaid_png()))
 
 #Run
-inputs={    
+
+inputs={
         "question":"Explan how the different type of agent memory work?",
         "steps": []
 }
+# inputs={
+#         "question":"what is agent memory?",
+#         "steps": []
+# }
+# inputs={
+#         "question":"Explain how AlphaCodium works?",
+#         "steps": []
+# }
 
 for output in custom_graph.stream(inputs):
     for key,value in output.items():
         pprint.pprint(f"Node '{key}':")
     pprint.pprint("\n---\n")
-pprint.pprint(value['keys']['generation'])
+pprint.pprint(value['generation'])
+
+
 '''
 def predict_custom_agent_local_answer(example: dict):
     config = {"configurable": {"thread_id": str(uuid.uuid4())}}
