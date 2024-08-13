@@ -225,3 +225,9 @@ pip install
     | llm
 )
 >- 首先將使用者input透過RunnablePassthrough.assign(query=gen_query_chain)產生prompt內的query變數，再將query變數送到assign( result=lambda x: run_query(x["query"]), )產生SQL搜尋結果result變數，最後將input、query、result輸入語言模型生成最後答案
+
+
+ARAG Flow Chart
+===
+![ARAG](ARAG.png "游標顯示")
+- ref:https://langchain-ai.github.io/langgraph/tutorials/rag/langgraph_adaptive_rag/
