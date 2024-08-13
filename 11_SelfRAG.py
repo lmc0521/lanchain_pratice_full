@@ -4,6 +4,7 @@ from typing import TypedDict, Dict
 
 from langchain import hub
 from langchain_community.document_loaders import WebBaseLoader
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma, SKLearnVectorStore
 from langchain_core.output_parsers import StrOutputParser, PydanticToolsParser
 from langchain_core.prompts import PromptTemplate
@@ -29,10 +30,16 @@ text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
 doc_splits = text_splitter.split_documents(docs_list)
 
 # Add to vectorDB
+# model_name = "sentence-transformers/all-MiniLM-L6-v2"
+# model_kwargs = {'device': 'cpu'}
+# embedding = HuggingFaceEmbeddings(model_name=model_name,
+#                                   model_kwargs=model_kwargs)
+#
 # vectorstore = Chroma.from_documents(
 #     documents=doc_splits,
-#     collection_name="rag-chroma",
-#     embedding=OpenAIEmbeddings(),
+#     # collection_name="rag-chroma",
+#     embedding=embedding,
+#     persist_directory='db'
 # )
 vectorstore = SKLearnVectorStore.from_documents(
     documents=doc_splits,
