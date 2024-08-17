@@ -16,6 +16,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from typing_extensions import TypedDict
 from IPython.display import Image, display
 from langgraph.graph import START, END, StateGraph
+
+
 local_llm="llama3"
 
 #Load
