@@ -36,8 +36,12 @@ def main():
     # # query_text = args.query_text
     # jsonString = unquote(args.config)
     # query_text = json.loads(jsonString)
-    query_text = json.load(sys.stdin)
+
+    # query_text = json.load(sys.stdin)
+    # print('--------------------------------------',sys.argv[1],type(sys.argv[1]))
+    query_text = json.loads(sys.argv[1])
     query_crag(query_text)
+
 
 def query_crag(query_text:dict):
     loader = WebBaseLoader(url)

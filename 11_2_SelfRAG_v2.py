@@ -276,51 +276,51 @@ def transform_query(state):
     return {"documents": documents, "question": better_question}
 
 
-def web_search(state):
-    """
-    Web search based on the re-phrased question.
-
-    Args:
-        state (dict): The current graph state
-
-    Returns:
-        state (dict): Updates documents key with appended web results
-    """
-
-    print("---WEB SEARCH---")
-    question = state["question"]
-
-    # Web search
-    docs = web_search_tool.invoke({"query": question})
-    web_results = "\n".join([d["content"] for d in docs])
-    web_results = Document(page_content=web_results)
-
-    return {"documents": web_results, "question": question}
+# def web_search(state):
+#     """
+#     Web search based on the re-phrased question.
+#
+#     Args:
+#         state (dict): The current graph state
+#
+#     Returns:
+#         state (dict): Updates documents key with appended web results
+#     """
+#
+#     print("---WEB SEARCH---")
+#     question = state["question"]
+#
+#     # Web search
+#     docs = web_search_tool.invoke({"query": question})
+#     web_results = "\n".join([d["content"] for d in docs])
+#     web_results = Document(page_content=web_results)
+#
+#     return {"documents": web_results, "question": question}
 
 
 ### Edges ###
 
 
-def route_question(state):
-    """
-    Route question to web search or RAG.
-
-    Args:
-        state (dict): The current graph state
-
-    Returns:
-        str: Next node to call
-    """
-
-    print("---ROUTE QUESTION---")
-    question = state["question"]
-    source = question_router.invoke({"question": question})
-    if source.datasource == "web_search":
-        print("---ROUTE QUESTION TO WEB SEARCH---")
-        return "web_search"
-    elif source.datasource == "vectorstore":
-        print("---ROUTE QUESTION TO RAG---")
-        return "vectorstore"
+# def route_question(state):
+#     """
+#     Route question to web search or RAG.
+#
+#     Args:
+#         state (dict): The current graph state
+#
+#     Returns:
+#         str: Next node to call
+#     """
+#
+#     print("---ROUTE QUESTION---")
+#     question = state["question"]
+#     source = question_router.invoke({"question": question})
+#     if source.datasource == "web_search":
+#         print("---ROUTE QUESTION TO WEB SEARCH---")
+#         return "web_search"
+#     elif source.datasource == "vectorstore":
+#         print("---ROUTE QUESTION TO RAG---")
+#         return "vectorstore"
 
 
 def decide_to_generate(state):
